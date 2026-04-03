@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大喜利ランキング</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --accent: #FFD600;
+    --accent2: #FF4D4D;
+    --text: #f0f0f0;
+    --muted: #666;
+    --border: #333;
+    --gold: #FFD600;
+    --silver: #C0C0C0;
+    --bronze: #CD7F32;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Zen Maru Gothic', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  header {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: var(--surface);
+  }
+
+  .logo {
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo span { color: var(--accent); }
+
+  .session-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent2);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    animation: pulse-badge 2s infinite;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    background: white;
+    border-radius: 50%;
+    animation: blink 1s infinite;
+  }
+
+  .conn-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+  }
+  .conn-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .conn-dot.online  { background: #4ade80; }
+  .conn-dot.offline { background: var(--accent2); }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  @keyframes pulse-badge {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,77,0.4); }
+    50%       { box-shadow: 0 0 0 6px rgba(255,77,77,0); }
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 0;
+    min-height: calc(100vh - 70px);
+  }
+
+  .players-section {
+    padding: 28px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .add-player-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+  .add-player-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+
+  .player-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    transition: all 0.2s;
+  }
+
+  .player-card.bumped {
+    animation: bump 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+
+  @keyframes bump {
+    0%  { transform: scale(1); }
+    30% { transform: scale(1.06); background: #1e1e00; border-color: var(--accent); }
+    60% { transform: scale(0.98); }
+    100%{ transform: scale(1); }
+  }
+
+  .rank-badge {
+    position: absolute;
+    top: -10px; left: 12px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem; font-weight: 700;
+    border: 2px solid var(--bg);
+  }
+  .rank-1    { background: var(--gold);   color: #000; }
+  .rank-2    { background: var(--silver); color: #000; }
+  .rank-3    { background: var(--bronze); color: #fff; }
+  .rank-other{ background: var(--surface2); color: var(--muted); }
+
+  .player-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+  }
+
+  .player-name {
+    font-size: 0.9rem; font-weight: 700;
+    text-align: center; line-height: 1.2;
+    word-break: break-all;
+  }
+
+  .player-score {
+    font-family: 'Space Mono', monospace;
+    font-size: 2.2rem; font-weight: 700;
+    line-height: 1; color: var(--accent);
+  }
+
+  .vote-btn {
+    width: 100%; padding: 10px; border-radius: 10px; border: none;
+    background: var(--accent); color: #000;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: 1.1rem; font-weight: 900; cursor: pointer;
+    transition: all 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .vote-btn:hover  { background: #ffe033; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,214,0,0.3); }
+  .vote-btn:active { transform: translateY(1px); box-shadow: none; }
+
+  .delete-player-btn {
+    position: absolute;
+    top: 6px; right: 8px;
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 0.85rem; opacity: 0;
+    transition: opacity 0.15s; padding: 2px 4px;
+  }
+  .player-card:hover .delete-player-btn { opacity: 1; }
+  .delete-player-btn:hover { color: var(--accent2); }
+
+  .ranking-section {
+    padding: 28px; background: var(--surface);
+    display: flex; flex-direction: column; gap: 20px;
+  }
+
+  .ranking-title {
+    font-size: 1.1rem; font-weight: 900;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .ranking-list {
+    display: flex; flex-direction: column; gap: 8px; flex: 1;
+  }
+
+  .ranking-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 14px;
+    background: var(--surface2); border-radius: 12px;
+    border: 1px solid var(--border);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .ranking-row.rank-1-row { border-color: rgba(255,214,0,0.4); background: rgba(255,214,0,0.07); }
+  .ranking-row.rank-2-row { border-color: rgba(192,192,192,0.3); }
+  .ranking-row.rank-3-row { border-color: rgba(205,127,50,0.3); }
+
+  .ranking-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem; color: var(--muted);
+    width: 20px; text-align: right; flex-shrink: 0;
+  }
+  .ranking-num.gold   { color: var(--gold);   font-weight: 700; font-size: 1rem; }
+  .ranking-num.silver { color: var(--silver); font-weight: 700; font-size: 1rem; }
+  .ranking-num.bronze { color: var(--bronze); font-weight: 700; font-size: 1rem; }
+
+  .ranking-emoji { font-size: 1.3rem; flex-shrink: 0; }
+
+  .ranking-name {
+    flex: 1; font-weight: 700; font-size: 0.95rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .ranking-score {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem; font-weight: 700;
+    color: var(--accent); flex-shrink: 0;
+  }
+
+  .bar-wrap {
+    height: 3px; background: var(--border);
+    border-radius: 100px; margin-top: 4px; width: 100%; position: relative;
+  }
+  .bar-fill {
+    position: absolute; left: 0; top: 0; height: 100%;
+    background: var(--accent); border-radius: 100px;
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .rank-1-row .bar-fill { background: var(--gold); }
+
+  .ranking-inner { flex: 1; min-width: 0; }
+
+  .total-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .total-label { font-size: 0.8rem; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .total-count { font-family: 'Space Mono', monospace; font-size: 1.4rem; font-weight: 700; }
+
+  .reset-btn {
+    padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: none; color: var(--muted);
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: 0.85rem; cursor: pointer; transition: all 0.15s; width: 100%;
+  }
+  .reset-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px; width: 340px;
+    transform: scale(0.92) translateY(10px);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .modal-overlay.show .modal { transform: scale(1) translateY(0); }
+  .modal h2 { font-size: 1.1rem; font-weight: 900; margin-bottom: 20px; }
+
+  .modal-field { margin-bottom: 14px; }
+  .modal-field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; font-weight: 700; letter-spacing: 0.08em; }
+  .modal-field input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; color: var(--text);
+    font-family: 'Zen Maru Gothic', sans-serif; font-size: 0.95rem;
+    outline: none; transition: border-color 0.15s;
+  }
+  .modal-field input:focus { border-color: var(--accent); }
+
+  .emoji-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .emoji-opt {
+    aspect-ratio: 1; border-radius: 8px; border: 2px solid transparent;
+    background: var(--surface2); font-size: 1.3rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.12s;
+  }
+  .emoji-opt:hover { background: var(--border); }
+  .emoji-opt.selected { border-color: var(--accent); background: rgba(255,214,0,0.1); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-cancel {
+    flex: 1; padding: 10px; background: none; border: 1px solid var(--border);
+    color: var(--muted); border-radius: 10px; cursor: pointer;
+    font-family: 'Zen Maru Gothic', sans-serif; font-weight: 700; transition: all 0.15s;
+  }
+  .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+  .btn-add {
+    flex: 2; padding: 10px; background: var(--accent); border: none; color: #000;
+    border-radius: 10px; cursor: pointer;
+    font-family: 'Zen Maru Gothic', sans-serif; font-weight: 900; font-size: 0.95rem; transition: all 0.15s;
+  }
+  .btn-add:hover { background: #ffe033; }
+
+  .float-plus {
+    position: fixed;
+    font-family: 'Space Mono', monospace;
+    font-size: 1.4rem; font-weight: 700; color: var(--accent);
+    pointer-events: none; z-index: 900;
+    animation: floatUp 0.9s ease-out forwards;
+    text-shadow: 0 2px 8px rgba(255,214,0,0.5);
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-80px) scale(1.3); opacity: 0; }
+  }
+
+  .empty-state {
+    color: var(--muted); font-size: 0.9rem;
+    text-align: center; padding: 40px 20px; line-height: 1.8;
+  }
+
+  @media (max-width: 700px) {
+    .main { grid-template-columns: 1fr; }
+    .ranking-section { border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">大喜利<span>KING</span></div>
+  <div class="session-info">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="conn-status">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-label">接続中...</span>
+    </div>
+    <span id="total-votes-header">総投票: 0</span>
+  </div>
+</header>
+
+<div class="main">
+  <section class="players-section">
+    <div class="section-header">
+      <span class="section-title">回答者</span>
+      <button class="add-player-btn" onclick="openModal()">＋ 回答者を追加</button>
+    </div>
+    <div class="players-grid" id="players-grid">
+      <div class="empty-state">＋ボタンから回答者を追加して<br>大喜利をスタート！</div>
+    </div>
+  </section>
+
+  <aside class="ranking-section">
+    <div class="ranking-title">🏆 ランキング</div>
+    <div class="total-box">
+      <span class="total-label">TOTAL LAUGHS</span>
+      <span class="total-count" id="total-count">0</span>
+    </div>
+    <div class="ranking-list" id="ranking-list">
+      <div class="empty-state" style="padding:20px;font-size:0.85rem;">まだ投票がありません</div>
+    </div>
+    <button class="reset-btn" id="reset-btn" onclick="resetAll()">🔄 スコアをリセット</button>
+  </aside>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2>回答者を追加</h2>
+    <div class="modal-field">
+      <label>名前</label>
+      <input type="text" id="player-name-input" placeholder="例: 田中さん" maxlength="20" />
+    </div>
+    <div class="modal-field">
+      <label>アイコン</label>
+      <div class="emoji-picker" id="emoji-picker"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-add" onclick="addPlayer()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, push, remove, runTransaction }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ========== Firebase Config ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyBEsn7ynywwO25mqE2DoKVvdWmzJZ0B72M",
+  authDomain: "ookiri-taikai.firebaseapp.com",
+  databaseURL: "https://ookiri-taikai-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ookiri-taikai",
+  storageBucket: "ookiri-taikai.firebasestorage.app",
+  messagingSenderId: "131854606021",
+  appId: "1:131854606021:web:b9f20fe87788aa42f99aac"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+const playersRef = ref(db, 'players');
+
+// ========== Connection indicator ==========
+const connRef = ref(db, '.info/connected');
+onValue(connRef, snap => {
+  const online = snap.val();
+  document.getElementById('conn-dot').className = 'conn-dot ' + (online ? 'online' : 'offline');
+  document.getElementById('conn-label').textContent = online ? 'リアルタイム同期中' : 'オフライン';
+});
+
+// ========== State ==========
+const EMOJIS = ['😂','🤣','😎','🦊','🐸','🐧','🦁','🐯','🐻','🐼','🐨','🦄','🐙','🦋','🍣','🍜','🍕','🎭','🎪','🎯','⚡','🌟','💥','🔥','🎲','🤖'];
+let players = {};
+let selectedEmoji = EMOJIS[0];
+
+// ========== Emoji picker ==========
+const picker = document.getElementById('emoji-picker');
+EMOJIS.forEach((e, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'emoji-opt' + (i === 0 ? ' selected' : '');
+  btn.textContent = e;
+  btn.onclick = () => {
+    document.querySelectorAll('.emoji-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedEmoji = e;
+  };
+  picker.appendChild(btn);
+});
+
+// ========== Modal ==========
+window.openModal = () => {
+  document.getElementById('modal-overlay').classList.add('show');
+  document.getElementById('player-name-input').value = '';
+  document.getElementById('player-name-input').focus();
+  selectedEmoji = EMOJIS[0];
+  document.querySelectorAll('.emoji-opt').forEach((b, i) => b.classList.toggle('selected', i === 0));
+};
+window.closeModal = () => document.getElementById('modal-overlay').classList.remove('show');
+
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) window.closeModal();
+});
+document.getElementById('player-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.addPlayer();
+});
+
+// ========== Add player ==========
+window.addPlayer = () => {
+  const name = document.getElementById('player-name-input').value.trim();
+  if (!name) { document.getElementById('player-name-input').focus(); return; }
+  push(playersRef, { name, emoji: selectedEmoji, score: 0 });
+  window.closeModal();
+};
+
+// ========== Delete player ==========
+window.deletePlayer = (key) => remove(ref(db, 'players/' + key));
+
+// ========== Vote (atomic) ==========
+window.vote = (key, event) => {
+  runTransaction(ref(db, `players/${key}/score`), cur => (cur || 0) + 1);
+
+  // +1 float animation (local only)
+  const plus = document.createElement('div');
+  plus.className = 'float-plus';
+  plus.textContent = '+1';
+  plus.style.left = (event.clientX - 15) + 'px';
+  plus.style.top  = (event.clientY - 10) + 'px';
+  document.body.appendChild(plus);
+  plus.addEventListener('animationend', () => plus.remove());
+};
+
+// ========== Reset scores ==========
+window.resetAll = () => {
+  const btn = document.getElementById('reset-btn');
+  if (btn.dataset.confirm === '1') {
+    Object.keys(players).forEach(key => set(ref(db, `players/${key}/score`), 0));
+    btn.textContent = '🔄 スコアをリセット';
+    btn.dataset.confirm = '0';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  } else {
+    btn.textContent = '⚠️ もう一度押すとリセット';
+    btn.dataset.confirm = '1';
+    btn.style.borderColor = 'var(--accent2)';
+    btn.style.color = 'var(--accent2)';
+    setTimeout(() => {
+      btn.textContent = '🔄 スコアをリセット';
+      btn.dataset.confirm = '0';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }, 3000);
+  }
+};
+
+// ========== Firebase listener → render ==========
+onValue(playersRef, snap => {
+  players = snap.val() || {};
+  render();
+});
+
+// ========== Helpers ==========
+function getRankInfo(i) {
+  if (i === 0) return { label: '🥇', cls: 'gold',   rowcls: 'rank-1-row', badgecls: 'rank-1' };
+  if (i === 1) return { label: '🥈', cls: 'silver', rowcls: 'rank-2-row', badgecls: 'rank-2' };
+  if (i === 2) return { label: '🥉', cls: 'bronze', rowcls: 'rank-3-row', badgecls: 'rank-3' };
+  return { label: String(i + 1), cls: '', rowcls: '', badgecls: 'rank-other' };
+}
+
+function avatarBg(emoji) {
+  const colors = ['#1e1a00','#001e1a','#1a001e','#001a1e','#1e0010','#0d1e00'];
+  let h = 0;
+  for (const c of emoji) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+  return colors[h % colors.length];
+}
+
+// ========== Render ==========
+function render() {
+  const entries  = Object.entries(players);
+  const sorted   = [...entries].sort((a, b) => (b[1].score || 0) - (a[1].score || 0));
+  const total    = entries.reduce((s, [, p]) => s + (p.score || 0), 0);
+  const maxScore = sorted[0]?.[1]?.score || 1;
+
+  document.getElementById('total-count').textContent = total;
+  document.getElementById('total-votes-header').textContent = `総投票: ${total}`;
+
+  const grid = document.getElementById('players-grid');
+
+  if (entries.length === 0) {
+    grid.innerHTML = '<div class="empty-state">＋ボタンから回答者を追加して<br>大喜利をスタート！</div>';
+    document.getElementById('ranking-list').innerHTML =
+      '<div class="empty-state" style="padding:20px;font-size:0.85rem;">まだ投票がありません</div>';
+    return;
+  }
+
+  // Remove stale cards
+  grid.querySelector('.empty-state')?.remove();
+  const currentKeys = new Set(entries.map(([k]) => k));
+  [...grid.querySelectorAll('.player-card')].forEach(card => {
+    if (!currentKeys.has(card.dataset.key)) card.remove();
+  });
+
+  // Add / update cards
+  entries.forEach(([key, p]) => {
+    const rank = sorted.findIndex(([k]) => k === key);
+    const ri   = getRankInfo(rank);
+    let card   = grid.querySelector(`[data-key="${key}"]`);
+
+    if (!card) {
+      card = document.createElement('div');
+      card.className   = 'player-card';
+      card.dataset.key = key;
+      card.id          = 'card-' + key;
+      card.innerHTML = `
+        <button class="delete-player-btn" onclick="deletePlayer('${key}')" title="削除">✕</button>
+        <div class="rank-badge ${ri.badgecls}" id="badge-${key}">${ri.label}</div>
+        <div class="player-avatar" style="background:${avatarBg(p.emoji)}">${p.emoji}</div>
+        <div class="player-name">${p.name}</div>
+        <div class="player-score" id="score-${key}">${p.score || 0}</div>
+        <button class="vote-btn" onclick="vote('${key}', event)">👏 おもしろい！</button>
+      `;
+      grid.appendChild(card);
+    } else {
+      const scoreEl = document.getElementById('score-' + key);
+      const prev    = parseInt(scoreEl.textContent || '0');
+      const curr    = p.score || 0;
+      scoreEl.textContent = curr;
+
+      const badge = document.getElementById('badge-' + key);
+      if (badge) { badge.className = `rank-badge ${ri.badgecls}`; badge.textContent = ri.label; }
+
+      if (curr > prev) {
+        card.classList.remove('bumped');
+        void card.offsetWidth;
+        card.classList.add('bumped');
+      }
+    }
+  });
+
+  // Ranking list
+  const rankList = document.getElementById('ranking-list');
+  rankList.innerHTML = '';
+  sorted.forEach(([key, p], i) => {
+    const ri  = getRankInfo(i);
+    const pct = maxScore > 0 ? ((p.score || 0) / maxScore * 100) : 0;
+    const row = document.createElement('div');
+    row.className = `ranking-row ${ri.rowcls}`;
+    row.innerHTML = `
+      <div class="ranking-num ${ri.cls}">${ri.label}</div>
+      <div class="ranking-emoji">${p.emoji}</div>
+      <div class="ranking-inner">
+        <div class="ranking-name">${p.name}</div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="ranking-score">${p.score || 0}</div>
+    `;
+    rankList.appendChild(row);
+  });
+}
+</script>
+</body>
+</html>
